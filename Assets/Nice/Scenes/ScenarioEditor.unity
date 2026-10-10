@@ -1230,6 +1230,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScenarioEditor
   grid: {fileID: 245578364}
+  correctPlacement: {r: 0.2660625, g: 1, b: 0, a: 0}
+  wrongPlacement: {r: 1, g: 0, b: 0, a: 0}
   icePiecePrefab: {fileID: 2726834169252717497, guid: 773483e2b14d245b5a2fc06ef5da99dc, type: 3}
   groundPiecePrefab: {fileID: 618023918812053264, guid: e33505a1c93504a299dbb21bf7b3e7ea, type: 3}
   wallPiecePrefab: {fileID: 7082375656878048766, guid: e6e1ecc96893d4d199d55acdeb47aa68, type: 3}

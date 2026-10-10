@@ -14,16 +14,6 @@ public class CameraMovement : MonoBehaviour
         pitch = transform.eulerAngles.x;
     }
 
-    private void OnEnable()
-    {
-        GameManager.GetInstance().Input.Camera.Enable();
-    }
-
-    private void OnDisable()
-    {
-        GameManager.GetInstance().Input.Camera.Disable();
-    }
-
     private void Update()
     {
         Move();

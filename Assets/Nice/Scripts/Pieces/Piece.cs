@@ -13,6 +13,11 @@ public abstract class Piece : MonoBehaviour
 
 	protected virtual void Awake()
 	{
+		foreach (Tile t in tiles)
+		{
+			t.piece = this;
+		}
+
 		renderers = GetComponentsInChildren<Renderer>(true);
 		propertyBlock = new MaterialPropertyBlock();
 
@@ -37,7 +42,7 @@ public abstract class Piece : MonoBehaviour
 		SetRotation(pieceRotation);
 	}
 
-	private void SetPreviewColor(Color? color)
+	public void SetPreviewColor(Color? color)
 	{
 		if (renderers == null)
 		{

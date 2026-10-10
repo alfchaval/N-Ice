@@ -14,6 +14,8 @@ public abstract class Tile : MonoBehaviour
 	[SerializeField] private bool exit_down = true;
 	[SerializeField] private bool exit_left = true;
 
+    public Piece piece;
+
 	protected bool CanEnter(QuarterDirection localDirection)
 	{
 		return localDirection switch

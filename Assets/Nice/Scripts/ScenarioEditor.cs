@@ -1,8 +1,12 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class ScenarioEditor : MonoBehaviour
 {
 	public GameMapGrid grid;
+
+	public Color correctPlacement;
+	public Color wrongPlacement;
 
 	[Header("Piece Prefabs")]
 	public IcePiece icePiecePrefab;
@@ -11,8 +15,11 @@ public class ScenarioEditor : MonoBehaviour
 
 	private Piece selectedPiece;
 
+	private const float draggingFromCamera = 2f;
+
 	private void Update()
 	{
+		CheckSelection();
 		UpdateDrag();
 	}
 
@@ -37,7 +44,7 @@ public class ScenarioEditor : MonoBehaviour
 		SelectPiece(newPiece.GetComponent<Piece>());
 	}
 
-	public void SelectPiece(Piece piece)
+	private void SelectPiece(Piece piece)
 	{
 		if (selectedPiece)
         {
@@ -48,64 +55,105 @@ public class ScenarioEditor : MonoBehaviour
 		grid.RemovePiece(piece);
 	}
 
-	public void UpdateDrag()
+	private void CheckSelection()
+	{
+		if(Mouse.current.leftButton.wasPressedThisFrame)
+		{
+			if(selectedPiece)
+			{
+				UnselectPiece();
+			}
+			else
+			{
+				Vector3 mouseInWorld = Camera.main.ScreenToWorldPoint(new Vector3(Mouse.current.position.ReadValue().x, Mouse.current.position.ReadValue().y, draggingFromCamera));
+				Vector3 cameraToMouse = Vector3.Normalize(mouseInWorld - Camera.main.transform.position);
+				float denominator = Vector3.Dot(cameraToMouse, grid.transform.up);
+
+				if (Mathf.Abs(denominator) >= 0.1f)
+				{
+					float t = Vector3.Dot(grid.transform.position - Camera.main.transform.position, grid.transform.up) / denominator;
+					Vector3 pointInGrid = Camera.main.transform.position + t * cameraToMouse;
+					Vector2Int tilePosition = grid.WorldToGrid(pointInGrid);
+					Tile tile = grid.GetTile(tilePosition.x, tilePosition.y);
+					if (tile)
+					{
+						selectedPiece = tile.piece;
+						grid.RemovePiece(tile.piece);
+					}
+				}
+			}
+		}
+	}
+
+	private void UpdateDrag()
 	{
 		if (selectedPiece)
         {
-			float denominator = Vector3.Dot(Camera.main.transform.forward, grid.transform.up);
+			Vector3 mouseInWorld = Camera.main.ScreenToWorldPoint(new Vector3(Mouse.current.position.ReadValue().x, Mouse.current.position.ReadValue().y, draggingFromCamera));
+			Vector3 cameraToMouse = Vector3.Normalize(mouseInWorld - Camera.main.transform.position);
+			float denominator = Vector3.Dot(cameraToMouse, grid.transform.up);
+
 			if (Mathf.Abs(denominator) >= 0.1f)
 			{
 				float t = Vector3.Dot(grid.transform.position - Camera.main.transform.position, grid.transform.up) / denominator;
-				Vector3 pointInGrid = Camera.main.transform.position + t * Camera.main.transform.forward;
+				Vector3 pointInGrid = Camera.main.transform.position + t * cameraToMouse;
 				Vector2 gridSize = grid.GetSize();
 				
 				if(Mathf.Abs(pointInGrid.x) < GameMapGrid.cellSize * gridSize.x / 2
 				&& Mathf.Abs(pointInGrid.z) < GameMapGrid.cellSize * gridSize.y / 2)
 				{
-					/*
-					if(LegalPosition())
+					selectedPiece.transform.position = pointInGrid;
+					selectedPiece.transform.position = grid.ClosestTileCenter(selectedPiece.tiles[0].transform.position) - selectedPiece.tiles[0].transform.localPosition;
+					if(grid.CanPlacePiece(selectedPiece))
 					{
-						selectedPiece.SetPreviewColor(green);
+						//selectedPiece.SetPreviewColor(correctPlacement);
 					}
 					else
 					{
-						selectedPiece.SetPreviewColor(red);
+						//selectedPiece.SetPreviewColor(wrongPlacement);
 					}
-					*/
 				}
 				else
 				{
-					selectedPiece.transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 2));
+					selectedPiece.transform.position = mouseInWorld;
 				}
 			}
 			else
 			{
-				selectedPiece.transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 2));
+				selectedPiece.transform.position = mouseInWorld;
 			}
         }
 	}
 
-	public void UnselectPiece()
+	private void UnselectPiece()
 	{
 		if (selectedPiece)
 		{
-			float denominator = Vector3.Dot(Camera.main.transform.forward, grid.transform.up);
+			Vector3 mouseInWorld = Camera.main.ScreenToWorldPoint(new Vector3(Mouse.current.position.ReadValue().x, Mouse.current.position.ReadValue().y, draggingFromCamera));
+			Vector3 cameraToMouse = Vector3.Normalize(mouseInWorld - Camera.main.transform.position);
+			float denominator = Vector3.Dot(cameraToMouse, grid.transform.up);
+
 			if (Mathf.Abs(denominator) >= 0.1f)
 			{
 				float t = Vector3.Dot(grid.transform.position - Camera.main.transform.position, grid.transform.up) / denominator;
-				Vector3 pointInGrid = Camera.main.transform.position + t * Camera.main.transform.forward;
+				Vector3 pointInGrid = Camera.main.transform.position + t * cameraToMouse;
 				Vector2 gridSize = grid.GetSize();
 				
 				if(Mathf.Abs(pointInGrid.x) < GameMapGrid.cellSize * gridSize.x / 2
 				&& Mathf.Abs(pointInGrid.z) < GameMapGrid.cellSize * gridSize.y / 2)
 				{
-					/*
-					selectedPiece.transform.position = PositionInGrid
-					if(LegalPosition())
+					selectedPiece.transform.position = pointInGrid;
+					selectedPiece.transform.position = grid.ClosestTileCenter(selectedPiece.tiles[0].transform.position) - selectedPiece.tiles[0].transform.localPosition;
+					if(grid.CanPlacePiece(selectedPiece))
 					{
-						AddToGrid(selectedPiece);
+						bool placed = grid.TryPlacePiece(selectedPiece);
+						if(!placed)
+						{
+							Destroy(selectedPiece.gameObject);
+						}
 					}
-					*/
+					selectedPiece = null;
+					Destroy(selectedPiece.gameObject);
 				}
 				else
 				{
@@ -121,7 +169,7 @@ public class ScenarioEditor : MonoBehaviour
 		}
 	}
 
-	public void RotateClockwise()
+	private void RotateClockwise()
 	{
 		if (selectedPiece)
 		{
@@ -129,7 +177,7 @@ public class ScenarioEditor : MonoBehaviour
 		}
 	}
 
-	public void RotateCounterClockwise()
+	private void RotateCounterClockwise()
 	{
 		if (selectedPiece)
 		{

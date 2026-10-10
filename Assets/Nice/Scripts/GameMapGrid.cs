@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GameMapGrid : MonoBehaviourInstance<GameMapGrid>
@@ -8,21 +9,29 @@ public class GameMapGrid : MonoBehaviourInstance<GameMapGrid>
 	[SerializeField] private int width = 20;
 	[SerializeField] private int height = 20;
 
-	[SerializeField] private Tile[,] tiles;
+	[SerializeField] private Dictionary<Vector2Int, Tile> tiles = new Dictionary<Vector2Int, Tile>();
 	[SerializeField] private List<Piece> pieces = new();
 
     public const float cellSize = 1f;
 
+	private void Update()
+	{
+		foreach(Piece p in pieces)
+		{
+			print(p.transform.position);
+		}
+	}
+
     protected override void OnInstance()
     {
-        tiles = new Tile[width, height];
 		gridRenderer.material.mainTextureScale = new Vector2(0.5f * width, 0.5f * height);
 		gridRenderer.transform.localScale = new Vector3(width * cellSize / 10, 0, height * cellSize / 10);
     }
 
 	public bool IsInside(int x, int z)
 	{
-		return x >= 0 && x < width && z >= 0 && z < height;
+		print("coordinates: " + x + ", " + z);
+		return x >= -width * cellSize / 2 && x < width * cellSize / 2 && z >= -height * cellSize / 2 && z < height * cellSize / 2;
 	}
 
 	public Tile GetTile(int x, int z)
@@ -32,18 +41,7 @@ public class GameMapGrid : MonoBehaviourInstance<GameMapGrid>
             return null;
         }
 
-		return tiles[x, z];
-	}
-
-	private bool TrySetTile(int x, int z, Tile tile)
-	{
-		if (!IsInside(x, z))
-		{
-            return false;
-        }
-
-		tiles[x, z] = tile;
-		return true;
+		return tiles[new Vector2Int(x, z)];
 	}
 
 	public Vector3 GridToWorld(int x, int z)
@@ -59,43 +57,33 @@ public class GameMapGrid : MonoBehaviourInstance<GameMapGrid>
 
 	public bool IsFree(int x, int z)
 	{
-		return IsInside(x, z) && tiles[x, z] == null;
+		print("IsInside: " + IsInside(x, z));
+		print("IsNull: " + tiles[new Vector2Int(x, z)] == null);
+		return IsInside(x, z) && tiles.ContainsKey(new Vector2Int(x, z)) && tiles[new Vector2Int(x, z)] == null;
+	}
+
+	public Vector3 ClosestTileCenter(Vector3 p)
+	{
+		float x = width % 2 == 0 ? ((int)p.x) + 0.5f * Mathf.Sign(p.x) : Mathf.Round(p.x);
+		float z = height % 2 == 0 ? ((int)p.z) + 0.5f * Mathf.Sign(p.z) : Mathf.Round(p.z);
+		return new Vector3(x, 0, z);
 	}
 
 	public bool CanPlacePiece(Piece piece)
 	{
-		if (piece)
-        {
-            foreach (Tile tile in piece.tiles)
-            {
-                if (!CanPlaceTile(tile))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return false;
+		Vector2Int tilePosition = WorldToGrid(ClosestTileCenter(piece.transform.position));
+		print(tilePosition);
+		return IsFree(tilePosition.x, tilePosition.y);
 	}
 
-    public bool CanPlaceTile(Tile tile)
-    {
-        Vector2Int gridPosition = WorldToGrid(tile.transform.position);
-        return IsFree(gridPosition.x, gridPosition.y);
-    }
-
-	public bool AddPiece(Piece piece)
+	public bool TryPlacePiece(Piece piece)
 	{
 		if (!pieces.Contains(piece) && CanPlacePiece(piece))
         {
-            foreach (Tile tile in piece.tiles)
-            {
-                
-            }
-
+			Vector2Int tilePosition = WorldToGrid(ClosestTileCenter(piece.transform.position));
+			tiles[tilePosition] = piece.tiles[0];
             pieces.Add(piece);
+			print(pieces.Count);
             return true;
         }
 		
@@ -106,10 +94,18 @@ public class GameMapGrid : MonoBehaviourInstance<GameMapGrid>
 	{
 		if (piece && pieces.Contains(piece))
         {
-            foreach (Tile tile in piece.tiles)
-            {
-
-		    }
+			List<Tile> tilesToRemove = piece.tiles.ToList();
+			foreach (KeyValuePair<Vector2Int, Tile> pair in tiles)
+			{
+				if (tilesToRemove.Contains(pair.Value))
+				{
+					tilesToRemove.Remove(pair.Value);
+					if(tilesToRemove.Count == 0)
+					{
+						break;
+					}
+				}
+			}
 
 		    pieces.Remove(piece);
             return true;
@@ -118,6 +114,7 @@ public class GameMapGrid : MonoBehaviourInstance<GameMapGrid>
         return false;
 	}
 
+/*
 	public void FitToTiles()
 	{
         if(pieces.Count > 0)
@@ -184,65 +181,12 @@ public class GameMapGrid : MonoBehaviourInstance<GameMapGrid>
         }
 	}
 
+	*/
+
 	public void Enlarge()
 	{
-		const int amount = 5;
-
-		int oldWidth = width;
-		int oldHeight = height;
-
-		Tile[,] oldTiles = tiles;
-
-		int newWidth = oldWidth + amount * 2;
-
-		int newHeight = oldHeight + amount * 2;
-
-		Tile[,] newTiles = new Tile[newWidth, newHeight];
-
-		for (int x = 0; x < oldWidth; x++)
-		{
-			for (int z = 0; z < oldHeight; z++)
-			{
-				Tile tile = oldTiles[x, z];
-
-				if (tile == null)
-					continue;
-
-				int newX = x + amount;
-				int newZ = z + amount;
-
-				newTiles[newX, newZ] = tile;
-			}
-		}
-
-		width = newWidth;
-		height = newHeight;
-		tiles = newTiles;
-
-		gridRenderer.material.mainTextureScale = new Vector2(0.5f * width, 0.5f * height);
-		gridRenderer.transform.localScale = new Vector3(width * cellSize / 10, 0, height * cellSize / 10);
-
-		for (int x = 0; x < width; x++)
-		{
-			for (int z = 0; z < height; z++)
-			{
-				Tile tile = tiles[x, z];
-
-				if (tile != null)
-				{
-					tile.transform.position =
-						GridToWorld(x, z);
-				}
-			}
-		}
-
-		foreach (Piece piece in pieces)
-		{
-			if (piece == null)
-				continue;
-
-			piece.transform.position += new Vector3(amount * cellSize, 0f, amount * cellSize);
-		}
+		width += 5;
+		height += 5;
 	}
 
 	public Vector2 GetSize()
