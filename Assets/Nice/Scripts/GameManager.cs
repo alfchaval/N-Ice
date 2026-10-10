@@ -7,5 +7,6 @@ public class GameManager : MonoBehaviourInstance<GameManager>
     protected override void OnInstance()
     {
         Input = new GameInputActions();
+        Input.Enable();
     }
 }
