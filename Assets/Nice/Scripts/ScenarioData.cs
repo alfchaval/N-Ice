@@ -8,8 +8,7 @@ public class ScenarioData
 	public int height;
 	public float cellSize;
 
-	public List<PieceData> pieces =
-		new List<PieceData>();
+	public List<PieceData> pieces = new List<PieceData>();
 }
 
 [Serializable]

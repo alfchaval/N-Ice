@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Grid : MonoBehaviour
+public class GameMapGrid : MonoBehaviourInstance<GameMapGrid>
 {
 	[SerializeField] private Renderer gridRenderer;
 
@@ -11,12 +11,13 @@ public class Grid : MonoBehaviour
 	[SerializeField] private Tile[,] tiles;
 	[SerializeField] private List<Piece> pieces = new();
 
-    private const float cellSize = 10f;
+    public const float cellSize = 1f;
 
-    private void Awake()
+    protected override void OnInstance()
     {
         tiles = new Tile[width, height];
 		gridRenderer.material.mainTextureScale = new Vector2(0.5f * width, 0.5f * height);
+		gridRenderer.transform.localScale = new Vector3(width * cellSize / 10, 0, height * cellSize / 10);
     }
 
 	public bool IsInside(int x, int z)
@@ -170,6 +171,7 @@ public class Grid : MonoBehaviour
 				width = newWidth;
 				height = newHeight;
 				gridRenderer.material.mainTextureScale = new Vector2(0.5f * width, 0.5f * height);
+				gridRenderer.transform.localScale = new Vector3(width * cellSize / 10, 0, height * cellSize / 10);
 
                 foreach (Piece piece in pieces)
                 {
@@ -216,8 +218,9 @@ public class Grid : MonoBehaviour
 		width = newWidth;
 		height = newHeight;
 		tiles = newTiles;
+
 		gridRenderer.material.mainTextureScale = new Vector2(0.5f * width, 0.5f * height);
-		
+		gridRenderer.transform.localScale = new Vector3(width * cellSize / 10, 0, height * cellSize / 10);
 
 		for (int x = 0; x < width; x++)
 		{
@@ -240,5 +243,10 @@ public class Grid : MonoBehaviour
 
 			piece.transform.position += new Vector3(amount * cellSize, 0f, amount * cellSize);
 		}
+	}
+
+	public Vector2 GetSize()
+	{
+		return new Vector2(width, height);
 	}
 }

@@ -4,12 +4,12 @@ public abstract class Piece : MonoBehaviour
 {
 	public Tile[] tiles;
 
-	private const float previewAlpha = 0.5f;
-
 	private Renderer[] renderers;
 	private MaterialPropertyBlock propertyBlock;
 
 	private QuarterRotation pieceRotation;
+
+	private const float previewAlpha = 0.5f;
 
 	protected virtual void Awake()
 	{
@@ -42,7 +42,7 @@ public abstract class Piece : MonoBehaviour
 		if (renderers == null)
 		{
 			renderers = GetComponentsInChildren<Renderer>(true);
-}
+		}
 
 		foreach (Renderer renderer in renderers)
 		{
